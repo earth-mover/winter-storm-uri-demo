@@ -107,3 +107,22 @@ def plot_generator_map(df: pd.DataFrame, title: str = "") -> Axes:
         ax.set_title(title)
 
     return ax
+
+
+def plot_map(da: xr.DataArray, title: str = "", **kwargs) -> Axes:
+    p = da.plot(
+        subplot_kws={"projection": ccrs.PlateCarree(), "facecolor": "gray"},
+        transform=ccrs.PlateCarree(),
+        cbar_kwargs={
+            "orientation": "horizontal",
+            "pad": 0.05,  # distance from plot
+            "aspect": 50,  # length-to-height ratio
+            "shrink": 0.6,  # shrink relative to default size
+        },
+        **kwargs,
+    )
+    p.axes.coastlines()
+    p.axes.add_feature(cfeature.STATES)
+    p.axes.set_title(title)
+
+    return p.axes

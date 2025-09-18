@@ -1,32 +1,50 @@
 import numpy as np
 import xarray as xr
+import zarr
+
+zarr.config.set({"async.concurrency": 32})
 
 TEXAS_METROS = {
-    "Dallas–Fort Worth–Arlington": {"lat": 32.7767, "lon": 360 - 96.7970},  # 263.203
+    "Dallas–Fort Worth–Arlington": {
+        "latitude": 32.7767,
+        "longitude": 360 - 96.7970,
+    },  # 263.203
     "Houston–The Woodlands–Sugar Land": {
-        "lat": 29.7604,
-        "lon": 360 - 95.3698,
+        "latitude": 29.7604,
+        "longitude": 360 - 95.3698,
     },  # 264.630
-    "San Antonio–New Braunfels": {"lat": 29.4241, "lon": 360 - 98.4936},  # 261.506
-    "Austin–Round Rock–Georgetown": {"lat": 30.2672, "lon": 360 - 97.7431},  # 262.257
-    "El Paso": {"lat": 31.7619, "lon": 360 - 106.4850},  # 253.515
-    "McAllen–Edinburg–Mission": {"lat": 26.2034, "lon": 360 - 98.2300},  # 261.770
-    "Corpus Christi": {"lat": 27.8006, "lon": 360 - 97.3964},  # 262.604
-    "Brownsville–Harlingen": {"lat": 25.9017, "lon": 360 - 97.4975},  # 262.503
-    "Laredo": {"lat": 27.5306, "lon": 360 - 99.4803},  # 260.520
-    "Lubbock": {"lat": 33.5779, "lon": 360 - 101.8552},  # 258.145
+    "San Antonio–New Braunfels": {
+        "latitude": 29.4241,
+        "longitude": 360 - 98.4936,
+    },  # 261.506
+    "Austin–Round Rock–Georgetown": {
+        "latitude": 30.2672,
+        "longitude": 360 - 97.7431,
+    },  # 262.257
+    "El Paso": {"latitude": 31.7619, "longitude": 360 - 106.4850},  # 253.515
+    "McAllen–Edinburg–Mission": {
+        "latitude": 26.2034,
+        "longitude": 360 - 98.2300,
+    },  # 261.770
+    "Corpus Christi": {"latitude": 27.8006, "longitude": 360 - 97.3964},  # 262.604
+    "Brownsville–Harlingen": {
+        "latitude": 25.9017,
+        "longitude": 360 - 97.4975,
+    },  # 262.503
+    "Laredo": {"latitude": 27.5306, "longitude": 360 - 99.4803},  # 260.520
+    "Lubbock": {"latitude": 33.5779, "longitude": 360 - 101.8552},  # 258.145
 }
 TEXAS_BBOX = {"latitude": slice(37, 25), "longitude": slice(253, 267)}
-CLIMATE_EPOCH = slice("1975-01-01", "2020-12-31")
+CLIMATE_EPOCH = slice("1990-01-01", "2020-12-31")
 
 
-def calculate_heating_degree_days(
+def calculate_heating_degree(
     temperature_da: xr.DataArray, base_temp: float = 18.0, aggregation: str = "daily"
 ) -> xr.DataArray:
     """
-    Calculate heating degree days from hourly xarray temperature data.
+    Calculate heating degree from hourly xarray temperature data.
 
-    Calculates HDD at hourly resolution first, then aggregates to desired period.
+    Calculates heating degrees at hourly resolution first, then aggregates to desired period.
     This is the accurate method for energy trading applications.
 
     Parameters
@@ -36,57 +54,57 @@ def calculate_heating_degree_days(
     base_temp : float, default=18
         Base temperature in Celsius for HDD calculation (typically 18°C)
     aggregation : str, default='daily'
-        How to aggregate hourly HDD ('daily', 'monthly', 'yearly', or 'hourly')
+        How to aggregate hourly HD ('daily', 'monthly', 'yearly', or 'hourly')
 
     Returns
     -------
     hdd : xr.DataArray
-        Heating degree days DataArray aggregated to specified period
+        Heating degree DataArray aggregated to specified period
         Units are degree-hours for 'hourly', degree-hours/day for 'daily',
         degree-hours/month for 'monthly', degree-hours/year for 'yearly'
     """
     # Calculate hourly HDD: max(0, base_temp - temperature)
-    hourly_hdd = xr.where(temperature_da < base_temp, base_temp - temperature_da, 0)
+    hourly_hd = xr.where(temperature_da < base_temp, base_temp - temperature_da, 0)
 
     # Set base attributes
-    hourly_hdd.attrs = {
+    hourly_hd.attrs = {
         "units": "degree-hours",
         "long_name": "Heating Degree Hours",
         "base_temperature": f"{base_temp}°C",
-        "description": f"HDD calculated as max(0, {base_temp} - T) for each hour",
+        "description": f"HD calculated as max(0, {base_temp} - T) for each hour",
     }
 
     # Aggregate hourly HDD based on requested period
     if aggregation == "hourly":
         # Return hourly HDD without aggregation
-        return hourly_hdd
+        return hourly_hd
     elif aggregation == "daily":
         # Sum hourly HDD to get daily total degree-hours
-        hdd = hourly_hdd.resample(time="1D").sum()
-        hdd.attrs.update(
+        hd = hourly_hd.resample(time="1D").sum()
+        hd.attrs.update(
             {
                 "units": "degree-hours/day",
-                "aggregation": "daily sum of hourly HDD",
+                "aggregation": "daily sum of hourly HD",
                 "long_name": "Daily Heating Degree Hours",
             }
         )
     elif aggregation == "monthly":
         # Sum hourly HDD to get monthly total degree-hours
-        hdd = hourly_hdd.resample(time="1M").sum()
-        hdd.attrs.update(
+        hd = hourly_hd.resample(time="1M").sum()
+        hd.attrs.update(
             {
                 "units": "degree-hours/month",
-                "aggregation": "monthly sum of hourly HDD",
+                "aggregation": "monthly sum of hourly HD",
                 "long_name": "Monthly Heating Degree Hours",
             }
         )
     elif aggregation == "yearly":
-        # Sum hourly HDD to get yearly total degree-hours
-        hdd = hourly_hdd.resample(time="1Y").sum()
-        hdd.attrs.update(
+        # Sum hourly HD to get yearly total degree-hours
+        hd = hourly_hd.resample(time="1Y").sum()
+        hd.attrs.update(
             {
                 "units": "degree-hours/year",
-                "aggregation": "yearly sum of hourly HDD",
+                "aggregation": "yearly sum of hourly HD",
                 "long_name": "Yearly Heating Degree Hours",
             }
         )
@@ -95,7 +113,7 @@ def calculate_heating_degree_days(
             f"Invalid aggregation: {aggregation}. Must be 'hourly', 'daily', 'monthly', or 'yearly'"
         )
 
-    return hdd
+    return hd
 
 
 def calculate_solar_production(
