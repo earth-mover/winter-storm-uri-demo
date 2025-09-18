@@ -72,7 +72,7 @@ def _(client):
 def _(repo, xr):
     session = repo.readonly_session("main")
 
-    era5 = xr.open_zarr(session.store, group="temporal")
+    era5 = xr.open_zarr(session.store, group="temporal", chunks={})
     era5
     return (era5,)
 
@@ -207,19 +207,48 @@ def _(
     actual_smooth = actual.rolling(time=smooth_factor.value).mean()
 
     mo.vstack([dropdown_dict, smooth_factor])
-
     return actual_smooth, climate_mean, climate_std, lat, lon
 
 
 @app.cell
-def _(actual_smooth, climate_mean, climate_std, lat, lon, plot_climatology):
+def _(
+    actual_smooth,
+    climate_mean,
+    climate_std,
+    dropdown_dict,
+    plot_climatology,
+):
     plot_climatology(
         smooth_mean=climate_mean,
         smooth_std=climate_std,
         smooth_actual=actual_smooth,
-        title=f"HD Climatology for Austin, TX ({lat:.2f}°N, {360-lon:.2f}°W)",
+        title=f"HD Climatology for {dropdown_dict.selected_key}",
         ylabel="Heating Degree Hours (degree-hours/day)",
     )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+    ## Hourly Analysis
+
+    We can also look at the hourly heating degree timeseries which clearly shows just how anomolous the demand on the energy system was.
+    """
+    )
+    return
+
+
+@app.cell
+def _(calculate_heating_degree, lat, lon, texas_temp_hourly):
+    hd_hourly = calculate_heating_degree(texas_temp_hourly, aggregation="hourly")
+
+    hd_hourly.sel(
+        latitude=lat, longitude=lon, method="nearest"
+    ).sel(
+        time=slice('2021-01-15', '2021-03-07')
+    ).plot(c='k')
     return
 
 

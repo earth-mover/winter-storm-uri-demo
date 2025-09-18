@@ -159,7 +159,7 @@ def _(plot_map, power_map):
 
 @app.cell
 def _(mo):
-    mo.md(r"""Conversely, we can easily extract a time series oof hourly power production from any point. For example,""")
+    mo.md(r"""Conversely, we can easily extract a time series of hourly power production from any point. For example,""")
     return
 
 
@@ -174,7 +174,7 @@ def _(power_hour):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(
         r"""
@@ -189,6 +189,7 @@ def _(mo):
 @app.cell
 def _(pd):
     all_generators = pd.read_excel("./data/january_generator2021.xlsx", header=2)
+    all_generators
     return (all_generators,)
 
 

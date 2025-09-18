@@ -33,7 +33,6 @@ def _():
 
     from energy import TEXAS_BBOX, TEXAS_METROS
     from plot import plot_map
-
     return Client, TEXAS_BBOX, TEXAS_METROS, datetime, mo, plot_map, plt, xr
 
 
@@ -139,7 +138,7 @@ def _(plot_map, texas_era5):
 
     plot_map(
         temp_c.sel(time=slice("2021-02-13", "2021-02-17")).mean(dim="time"),
-        title="Temperature",
+        title="Temperature (℃)",
         levels=14,
     )
     return
@@ -148,9 +147,9 @@ def _(plot_map, texas_era5):
 @app.cell
 def _(plot_map, texas_era5):
     plot_map(
-        texas_era5.sd.sel(time=slice("2021-02-13", "2021-02-17")).mean(dim="time"),
-        title="Snow Depth",
-        vmax=0.01,
+        texas_era5.sd.sel(time=slice("2021-02-13", "2021-02-17")).mean(dim="time") * 1000,
+        title="Snow Water Equivalent (mm)",
+        vmax=10,
     )
     return
 
@@ -179,7 +178,7 @@ def _(TEXAS_METROS, mo):
     return (dropdown_dict,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(dropdown_dict, mo):
     mo.vstack([dropdown_dict])
     return
